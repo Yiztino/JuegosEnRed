@@ -47,7 +47,7 @@ public class JuegoGato : MonoBehaviour
                 UpdateBoard(data);
                 UpdateInfoOnUI(data);
                 currentPlayer = data.actual;
-                Debug.Log("Current player: " + currentPlayer);
+                //Debug.Log("Current player con data actual: " + currentPlayer);
                 if (data.winner != 0)
                 {
                     Win(data);
@@ -82,6 +82,7 @@ public class JuegoGato : MonoBehaviour
             Debug.LogError("Error: No se ha asignado un jugador válido");
             return;
         }
+        //Debug.Log("CurrentPlayer en click" + currentPlayer);
         //int adjustedIndex = index - 1;
         StartCoroutine(NetworkManager.Instance.Tirada(currentPlayer, index));
         StartCoroutine(NetworkManager.Instance.GetState());

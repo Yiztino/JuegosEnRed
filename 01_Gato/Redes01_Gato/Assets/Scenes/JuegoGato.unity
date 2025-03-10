@@ -550,7 +550,7 @@ MonoBehaviour:
   score1: 
   score2: 
   winner: 0
-  timeToRefresh: 5
+  timeToRefresh: 1
 --- !u!1 &387885745
 GameObject:
   m_ObjectHideFlags: 0

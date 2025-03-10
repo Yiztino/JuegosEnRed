@@ -31,7 +31,7 @@ public class NetworkManager : MonoBehaviour
     public IEnumerator Tirada(int idPlayer, int pos)
     {
         Debug.Log("Solo por si acaso: " + baseURL + $"?action=3&id=id{idPlayer}&pos={pos}");
-        UnityWebRequest www = UnityWebRequest.Get(baseURL + $"?action=3&id={idPlayer}&pos={pos}");
+        UnityWebRequest www = UnityWebRequest.Get(baseURL + $"?action=3&id=id{idPlayer}&pos={pos}");
         yield return www.SendWebRequest();
 
         if (www.result != UnityWebRequest.Result.Success/*www.isNetworkError*/)
@@ -48,11 +48,21 @@ public class NetworkManager : MonoBehaviour
             // Llama a GetState después de confirmar que la tirada fue exitosa.
             if (json.Contains("OK se colocó la ficha y sigue el juego"))
             {
+                
                 yield return StartCoroutine(GetState());
+            }
+            else if(json.Contains("ok, gajó el winner: 1"))
+            {
+                yield return StartCoroutine(GetState());
+                //Debug.LogError("Error al realizar la tirada.");
+            }else if(json.Contains("ok, gajó el winner: 2"))
+            {
+                yield return StartCoroutine(GetState());
+                //Debug.LogError("Error al realizar la tirada.");
             }
             else
             {
-                Debug.LogError("Error al realizar la tirada.");
+                Debug.LogError("Error al realizar la tirada. Ni ganó nadie ni se colocó la ficha");
             }
         }
         //else
@@ -76,7 +86,7 @@ public class NetworkManager : MonoBehaviour
         }else
         {
             string json = www.downloadHandler.text;
-            Debug.Log("Juego reiniciado: " + json);
+            //Debug.Log("Juego reiniciado: " + json);
         }
         
     }
