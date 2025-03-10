@@ -13,14 +13,30 @@ public class JuegoGato : MonoBehaviour
     public string score1;
     public string score2;
     public int winner;
-    private int currentPlayer;
+    public int currentPlayer;
     public float timeToRefresh = 5f;
 
-    public void Start()
+
+    private void OnEnable()
+    {
+        UIselectPlayer.OnPlayerSelected += SetCurrentPlayer;
+    }
+
+    private void OnDisable()
+    {
+        UIselectPlayer.OnPlayerSelected -= SetCurrentPlayer;
+    }
+    private void SetCurrentPlayer(int player)
+    {
+        currentPlayer = player;
+        Debug.Log($"Jugador {currentPlayer} asignado. El juego puede iniciar.");
+        StartGame();
+    }
+
+    public void StartGame()
     {
         ResetGame();
         StartCoroutine(GetBoardStatusRepeatedly(timeToRefresh));
-
     }
     public IEnumerator GetBoardStatusRepeatedly(float interval)
     {
@@ -46,7 +62,7 @@ public class JuegoGato : MonoBehaviour
             {
                 UpdateBoard(data);
                 UpdateInfoOnUI(data);
-                currentPlayer = data.actual;
+                //currentPlayer = data.actual;
                 //Debug.Log("Current player con data actual: " + currentPlayer);
                 if (data.winner != 0)
                 {
