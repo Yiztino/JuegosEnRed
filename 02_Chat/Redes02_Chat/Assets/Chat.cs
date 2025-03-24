@@ -6,7 +6,9 @@ using UnityEngine.Networking;
 public class Chat : MonoBehaviour
 {
 
-    public string baseUrl = "http://chat_u3d.test/chat.php";
+    //public string baseUrl = "http://chat_u3d.test/chat.php";
+    public string baseUrl = "http://localhost/chat/chat.php";
+
 
     void Start()
     {
@@ -20,6 +22,8 @@ public class Chat : MonoBehaviour
 
     public void getRooms ()
     {
+        print("EEEEEEEEEEEY");
+        print(baseUrl + "?action=1");
         StartCoroutine(GetRequest(baseUrl+"?action=1"));
     }
 
@@ -33,6 +37,12 @@ public class Chat : MonoBehaviour
         string room = "anime",
             user = "frank";
         StartCoroutine(GetRequest(baseUrl + "?action=3&room="+room+"&username="+user+"&message="+message));
+    }
+    public void sendMovieMessage(string message)
+    {
+        string room = "movies",
+            user = "frank";
+        StartCoroutine(GetRequest(baseUrl + "?action=3&room=" + room + "&username=" + user + "&message=" + message));
     }
 
     IEnumerator GetRequest(string uri)
