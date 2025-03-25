@@ -22,8 +22,8 @@ public class Chat : MonoBehaviour
 
     public void getRooms ()
     {
-        print("EEEEEEEEEEEY");
-        print(baseUrl + "?action=1");
+        //print("EEEEEEEEEEEY");
+        //print(baseUrl + "?action=1");
         StartCoroutine(GetRequest(baseUrl+"?action=1"));
     }
 
