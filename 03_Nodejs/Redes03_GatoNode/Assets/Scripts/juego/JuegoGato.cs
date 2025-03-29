@@ -29,7 +29,7 @@ public class JuegoGato : MonoBehaviour
     private void SetCurrentPlayer(int player)
     {
         currentPlayer = player;
-        Debug.Log($"Jugador {currentPlayer} asignado. El juego puede iniciar.");
+        //Debug.Log($"Jugador {currentPlayer} asignado. El juego puede iniciar.");
         StartGame();
     }
 
@@ -56,7 +56,7 @@ public class JuegoGato : MonoBehaviour
 
         if (!string.IsNullOrEmpty(json))
         {
-            Debug.Log("Procesando datos: " + json);
+            //Debug.Log("Procesando datos: " + json);
             TicTacToeData data = JsonUtility.FromJson<TicTacToeData>(json);
             if (data != null && data.board.Length == 9)
             {

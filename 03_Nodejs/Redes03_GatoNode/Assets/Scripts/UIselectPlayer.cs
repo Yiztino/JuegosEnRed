@@ -24,7 +24,7 @@ public class UIselectPlayer : MonoBehaviour
 
     private void SelectPlayer()
     {
-        Debug.Log($"Jugador {playerNumber} seleccionado");
+        //Debug.Log($"Jugador {playerNumber} seleccionado");
         menu.SetActive( false );
         OnPlayerSelected?.Invoke(playerNumber);
     }
