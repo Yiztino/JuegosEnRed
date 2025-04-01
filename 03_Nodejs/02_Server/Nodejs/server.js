@@ -1,5 +1,5 @@
 const express = require('express');
-
+const fs = require('fs');
 const app = express();
 const port = 80;
 var count = 0;
@@ -8,6 +8,7 @@ var count = 0;
 
 class Gato{
     constructor(){
+        this.db = "game.db";
         this.board = [0, 0, 0, 0, 0, 0, 0, 0, 0];
         this.p1 = "id1";
         this.p2 = "id2";
@@ -26,12 +27,24 @@ class Gato{
         this.score1 = 0;
         this.score2 = 0;
         this.winner = 0;
-       
+        this.saveDb();
     }
-  
-    // getPlayer(id) {
-    //     return id === this.p1 ? 1 : id === this.p2 ? 2 : 0;
-    // }
+    saveDb(){
+        fs.writeFileSync(this.db, JSON.stringify(this));
+    }
+
+    loadDb() {
+        if (fs.existsSync(this.db)) {
+            const data = JSON.parse(fs.readFileSync(this.db));
+            Object.assign(this, data);
+        } else {
+            this.init();
+        }
+    }
+
+    getPlayer(id) {
+        return id === this.p1 ? 1 : id === this.p2 ? 2 : 0;
+    }
 
     getStatus(){
         return{
@@ -43,11 +56,10 @@ class Gato{
             board: this.board
         }
     }
-
-    turn(player, pos) {
-       
-        // let player = this.getPlayer(id);
-        if (player === 0) return "error: jugador es 0";
+    turn(id, pos) {
+        this.loadDb();
+        let player = this.getPlayer(id);
+        if (player === 0) return "error: jugador no válido";
         if (player !== this.actual) return "error: no es tu turno";
         if (pos < 0 || pos >= 9) return "error: posición inválida";
         if (this.board[pos] !== 0) return "error: posición ocupada";
@@ -60,9 +72,11 @@ class Gato{
             this.winner = winner;
             winner === 1 ? this.score1++ : this.score2++;
             this.round++;
-            
+            this.saveDb();
             return `Ganó el jugador ${winner}`;
         }
+
+        this.saveDb();
         return "OK, sigue el juego";
     }
 
@@ -90,7 +104,7 @@ app.get('/', (req, res) => {
     res.send('Hello World');
 });
 
-app.get('/init', (req, res) => { 
+app.get('/action/init', (req, res) => { 
     game.init();
     res.send('Initializacion de gato');
 });
@@ -100,22 +114,22 @@ app.get('/init', (req, res) => {
 //     res.send('Count'+count);
 // });
 
-app.get('/status', (req, res) => { 
+app.get('/action/status', (req, res) => { 
     res.json(game.getStatus());
     //res.send(`Return de status} `);
 });
 
-app.get('/turn/:player/:pos', (req, res) => { 
+app.get('/action/turn/:player/:pos', (req, res) => { 
     //let player = req.params['player'];
    
     let pos = req.params['pos'];
     let player = "";
     switch(req.params['player']){
         case "1":
-            player = 1;
+            player = "player01";
             break;
         case "2":
-            player = 2;
+            player = "player02";
             break;
         default:
             player = "error";
@@ -125,14 +139,9 @@ app.get('/turn/:player/:pos', (req, res) => {
     if (!/^\d+$/.test(pos)) {
         return res.status(400).send("Error: La posición debe ser un número.");
     }
-    
-    pos = parseInt(pos) - 1;
-    if(pos > (game.board.length -1) || pos < 0){
+    pos = parseInt(pos);
+    if(pos > 9 || pos < 1){
         pos="error, la posición no es válida";
-    }
-    if (player !== 1 && player !== 2) {
-        
-        return res.status(400).send("Error: ID de jugador no válido. " + "ID:" + player);
     }
     res.send(game.turn(player, pos));
     //res.send(`El player ${player} ha tirado en ${pos}`);

@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 public class NetworkManager : MonoBehaviour
 {
-    private string baseURL = "http://localhost/";
+    private string baseURL = "http://localhost/gato/gato.php";
     public static NetworkManager Instance;
     public string lastReceivedData;
     private void Awake()
@@ -16,7 +16,7 @@ public class NetworkManager : MonoBehaviour
    
     public IEnumerator GetState()
     {
-        UnityWebRequest www = UnityWebRequest.Get(baseURL + "status");
+        UnityWebRequest www = UnityWebRequest.Get(baseURL + "?action=2");
         yield return www.SendWebRequest();
 
         if (www.result != UnityWebRequest.Result.Success) { Debug.LogError("Error en GetState: " + www.error); }
@@ -30,13 +30,12 @@ public class NetworkManager : MonoBehaviour
 
     public IEnumerator Tirada(int idPlayer, int pos)
     {
-        Debug.Log("Solo por si acaso: " + baseURL + $"turn/{idPlayer}/{pos}");
-        UnityWebRequest www = UnityWebRequest.Get(baseURL + $"turn/{idPlayer}/{pos}");
+        Debug.Log("Solo por si acaso: " + baseURL + $"?action=3&id=id{idPlayer}&pos={pos}");
+        UnityWebRequest www = UnityWebRequest.Get(baseURL + $"?action=3&id=id{idPlayer}&pos={pos}");
         yield return www.SendWebRequest();
 
         if (www.result != UnityWebRequest.Result.Success/*www.isNetworkError*/)
         {
-            Debug.Log("error: " + baseURL + $"turn/{idPlayer}/{pos}");
             Debug.Log(www.error);
 
         }
@@ -47,7 +46,7 @@ public class NetworkManager : MonoBehaviour
             Debug.Log("Resultado de la tirada: " + json);
 
             // Llama a GetState después de confirmar que la tirada fue exitosa.
-            if (json.Contains("OK, sigue el juego"))
+            if (json.Contains("OK se colocó la ficha y sigue el juego"))
             {
                 
                 yield return StartCoroutine(GetState());
@@ -63,7 +62,7 @@ public class NetworkManager : MonoBehaviour
             }
             else
             {
-                //Debug.LogError("Error al realizar la tirada. Ni ganó nadie ni se colocó la ficha");
+                Debug.LogError("Error al realizar la tirada. Ni ganó nadie ni se colocó la ficha");
             }
         }
         //else
@@ -77,7 +76,7 @@ public class NetworkManager : MonoBehaviour
     public IEnumerator ResetGame()
     {
 
-        UnityWebRequest www = UnityWebRequest.Get(baseURL+$"init");
+        UnityWebRequest www = UnityWebRequest.Get(baseURL+$"?action=1");
         yield return www.SendWebRequest();
 
         if (www.result != UnityWebRequest.Result.Success/*www.isNetworkError*/)
