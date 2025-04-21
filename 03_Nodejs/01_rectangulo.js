@@ -1,10 +1,11 @@
 class Rectangulo {
   constructor(alto, ancho) {
-    this.alto = alto;
-    this.ancho = ancho;
+    this._alto = alto;
+    this._ancho = ancho;
   }
   // Getter
   get area() {
+    
     return this.calcArea();
   }
   get perimetro() {

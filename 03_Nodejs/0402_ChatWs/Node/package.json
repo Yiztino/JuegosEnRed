@@ -1,0 +1,16 @@
+{
+  "name": "05_websocket_chat",
+  "version": "0.0.1",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "start": "nodemon server.js"
+  },
+  "author": "Luis, Andre, Victor",
+  "license": "ISC",
+  "dependencies": {
+    "03_websocket_server": "file:",
+    "05_websocket_chat": "file:",
+    "ws": "^8.18.1"
+  }
+}
