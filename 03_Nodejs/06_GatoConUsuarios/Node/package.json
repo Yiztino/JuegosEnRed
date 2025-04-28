@@ -1,18 +1,16 @@
 {
-  "name": "websocketConHtml",
+  "name": "gatowebsocketserver",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon server.js"
   },
-  "author": "Luis Victor Andre",
+  "author": "Luis ",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "express": "^5.1.0",
-    "gatowebsocket": "file:",
-    "websocketConHtml": "file:",
+    "gatowebsocketserver": "file:",
     "ws": "^8.18.1"
   }
 }

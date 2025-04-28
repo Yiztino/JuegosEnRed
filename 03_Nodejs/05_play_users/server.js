@@ -1,6 +1,7 @@
 const WebSocket = require('ws');
 const clients = [];
 const users = [];
+exports.users = users;
 
 const httpPort = 80;
 const webSocketPort = 8080;
@@ -8,7 +9,7 @@ class User{
 	constructor()
 	{
 		this._username="No name";
-		this.conn = null;
+		this._conn = null;
 	}
 
 	set username( user )
@@ -41,17 +42,17 @@ class User{
 	}
 }
 
-const wss = new WebSocket.Server({ port: 8080 },()=>{
-    console.log('Server Started');
+const wss = new WebSocket.Server({ port: webSocketPort },()=>{
+    console.log('WebSocketServer Started');
 });
 
 wss.on('connection', function connection(ws) {
 	
 	console.log('New connenction');
-	clients.push(ws); // Agregar la conexión (cliente) a la lista
+	//clients.push(ws); // Agregar la conexión (cliente) a la lista
 	let user = new User();
 	user.connection = ws;
-	users.push(user);
+	users.push(user); // Agrega la conexión(cliente) a la lista
 	// let cliente = new Cliente ();
 	
     ws.on('open', (data) => {
@@ -77,7 +78,7 @@ wss.on('connection', function connection(ws) {
 					if(us.connection.readyState === WebSocket.OPEN)
 					{
 						lista = lista + us.username + "\n";
-						//client.send(cliente.username + " says: " + data); // si falla, cambiar a: `data.toString()`
+						//us.send(cliente.username + " says: " + data); // si falla, cambiar a: `data.toString()`
 					}
 				});
 				user.connection.send("300|list: "+lista);
@@ -116,7 +117,7 @@ wss.on('connection', function connection(ws) {
 
 	// Al cerrar la conexión, quitar de la lista de clientes
 	ws.on('close', () => { 
-		let index = clients.indexOf(ws);
+		let index = users.indexOf(ws);
 		if(index > -1)
 		{
 			users.splice(index, 1);
@@ -131,9 +132,9 @@ wss.on('listening',()=>{
 
 //////////// WEB SERVER ////////////////////////
 
-const express = require ("express");
+const express = require ('express');
 const app = express();
-app.use(express.json);
+app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 
 app.get('/', (req, res) => { 
@@ -147,7 +148,7 @@ app.get('/getusers', (req, res) => {
     users.forEach(us => {
         if(us.connection.readyState === WebSocket.OPEN)
         {
-            lista += "<li>" + us.username + "</li>"
+            lista += "<li>" + us.username + "</li>";
         }
     });
     lista += "</ul>";
@@ -159,7 +160,7 @@ app.get('/sendmessage', (req, res) => {
     users.forEach(us => {
         if(us.connection.readyState === WebSocket.OPEN)
         {
-            lista += "<li>" + us.username + "</li>"
+            lista += "<li>" + us.username + "</li>";
         }
     });
     lista += "</ul>";
@@ -168,14 +169,48 @@ app.get('/sendmessage', (req, res) => {
     res.send(page);
 });
 
+// app.post('/sendmessage', (req, res) => { 
+//     let form_to = req.body.to;
+//     let form_from = req.body.from;
+//     let form_mess = req.body.message;
+
+	
+//     let page = "<html><head><title>Message Sent</title></head><body>"+response+"</body></html>";
+
+//     res.send(page);
+// });
 app.post('/sendmessage', (req, res) => { 
     let form_to = req.body.to;
     let form_from = req.body.from;
     let form_mess = req.body.message;
 
-    let page = "<html><head><title>Message Sent</title></head><body>"+response+"</body></html>";
+    let destinoEncontrado = false;
 
-    res.send(page);
+    users.forEach(us => {
+        if(us.username === form_to && us.connection.readyState === WebSocket.OPEN)
+        {
+            destinoEncontrado = true;
+            us.connection.send("400|" + "Envía: " + form_from + " Mensaje: " + form_mess);
+        }
+    });
+
+    let respuestaHTML = "<h1>Resultado del envío</h1>";
+
+    if(destinoEncontrado) {
+        respuestaHTML += `<p><strong>De:</strong> ${form_from}</p>
+                          <p><strong>Para:</strong> ${form_to}</p>
+                          <p><strong>Mensaje:</strong> ${form_mess}</p>
+                          <p style='color:green;'>¡Mensaje enviado con éxito!</p>`;
+    } else {
+        respuestaHTML += `<p style='color:red;'>Usuario destino <strong>${form_to}</strong> no encontrado.</p>`;
+    }
+	
+    res.send(`
+        <html>
+            <head><title>Mensaje Enviado</title></head>
+            <body>${respuestaHTML}</body>
+        </html>
+    `);
 });
 
 app.listen(httpPort, () => {
