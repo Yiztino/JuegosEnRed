@@ -6,23 +6,17 @@ using UnityEngine.UI;
 public class JuegoGato : MonoBehaviour
 {
     public Button[] buttons;
-    public TMP_Text statusText;
+    public TMP_Text statusText, infoText;
     public int[] board = new int[9];
     public string score1;
     public string score2;
     public int winner;
     public int currentPlayer;
-
-
-
-    //private void OnEnable()
-    //{
-    //    UIselectPlayer.OnPlayerSelected += SetCurrentPlayer;
-    //    NetworkManager.Instance.OnDataReceived += ProcessReceivedData;
-    //}
+    public string enemyName;
+    private bool gameEnded = false;
+    public GameObject winText;
     private void OnEnable()
     {
-        // Comprobar si la instancia de NetworkManager existe
         if (NetworkManager.Instance == null)
         {
             Debug.LogError("NetworkManager.Instance no está inicializado.");
@@ -30,11 +24,13 @@ public class JuegoGato : MonoBehaviour
         }
 
         NetworkManager.Instance.OnGameDataReceived += ProcessReceivedData;
+        NetworkManager.Instance.OnGameStartReceived += UpdateStartUI;
        
     }
     private void OnDisable()
     {
         NetworkManager.Instance.OnGameDataReceived -= ProcessReceivedData;
+        NetworkManager.Instance.OnGameStartReceived -= UpdateStartUI;
     }
    
 
@@ -48,18 +44,6 @@ public class JuegoGato : MonoBehaviour
     {
         if (!string.IsNullOrEmpty(json))
         {
-            //TicTacToeData data = JsonUtility.FromJson<TicTacToeData>(json);
-            //if (data != null && data.board.Length == 9)
-            //{
-            //    UpdateBoard(data);
-            //    UpdateInfoOnUI(data);
-
-            //    if (data.winner != 0)
-            //    {
-            //        Win(data);
-            //    }
-            //}
-            //Debug.Log("Datos recibidos del servidor: " + json);
             TicTacToeData data;
             try
             {
@@ -91,38 +75,69 @@ public class JuegoGato : MonoBehaviour
         for (int i = 0; i < data.board.Length; i++)
         {
             board[i] = data.board[i];
-            TMP_Text buttonText = buttons[i].GetComponentInChildren<TMP_Text>();
-            if (buttonText != null)
+            TextMeshProUGUI txt = buttons[i].GetComponentInChildren<TextMeshProUGUI>();
+            //TMP_Text buttonText = buttons[i].GetComponentInChildren<TMP_Text>();
+            switch (board[i])
             {
-                buttonText.text = (board[i] == 1) ? "X" : (board[i] == 2) ? "O" : "";
+                case 0:
+                    txt.text = "";
+                    break;
+                case 1:
+                    txt.text = "X";
+                    break;
+                case 2:
+                    txt.text = "O";
+                    break;
             }
-            buttons[i].interactable = board[i] == 0;
+            //if (buttonText != null)
+            //{
+            //    buttonText.text = (board[i] == 1) ? "X" : (board[i] == 2) ? "O" : "";
+            //}
+            //buttons[i].interactable = board[i] == 0;
         }
     }
 
     private void UpdateInfoOnUI(TicTacToeData data)
     {
         string stringTurn = (data.actual == 1) ? "X" : "O";
-        statusText.text = $"Turno: {stringTurn} | Ronda: {data.round} | Score: {data.score1} - {data.score2}";
+        statusText.text = $"Turno de: {stringTurn} | Ronda: {data.round} | Score: {data.score1} - {data.score2}";
 
+    }
+    private void UpdateStartUI(string enemyName, string playerNum )
+    {
+        int playerNumber = int.Parse(playerNum);
+        currentPlayer = playerNumber;
+        string playerYouAre = (playerNumber == 1) ? "X" : "O";
+        infoText.text = $"Te toca jugar con {playerYouAre} contra {enemyName}";
     }
 
     public void OnButtonClick(int index)
     {
-        if (currentPlayer == 0)
-        {
-            Debug.LogError("Error: No se ha asignado un jugador válido");
-            return;
-        }
 
-        NetworkManager.Instance.Tirada(currentPlayer, index);
+        if (gameEnded) return;
+
+        NetworkManager.Instance.Tirada(index);
     }
     private void Win(TicTacToeData data)
     {
+        winText.SetActive(true);
+        TextMeshProUGUI textoWin = winText.GetComponent<TextMeshProUGUI>();
+        string winningText = data.winner == currentPlayer ? "Ganaste!" : "Perdiste";
+        textoWin.text = $"{winningText}";
+        gameEnded = true;
+        
 
         Debug.Log($"El jugador {data.winner} ganó");
-        ResetGame();
+        StartCoroutine(ResetAfterDelay());
+        //ResetGame();
 
+    }
+    private IEnumerator ResetAfterDelay()
+    {
+        yield return new WaitForSeconds(2f);
+        ResetGame();
+        //NetworkManager.Instance.ResetGam
+        //e();
     }
     private void ResetGame()
     {

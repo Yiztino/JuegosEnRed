@@ -12,8 +12,8 @@ public class UIManagaer : MonoBehaviour
 {
     public GridLayoutGroup userList;
     public GameObject menuInicial, menuStart, playerBtnPrefab, startButton,
-        warnNombreOcupado, invitacionRecibidaPopup;
-    public TextMeshProUGUI txtInvitacionRecibida;
+        warnNombreOcupado, invitacionRecibidaPopup, invitacionEnviadaPopUp;
+    public TextMeshProUGUI txtInvitacionRecibida, txtInvitacionEnviada;
     public Button startBtn;
     public InputField enterName;
     private int playerNumber;
@@ -36,7 +36,7 @@ public class UIManagaer : MonoBehaviour
         menuInicial.SetActive(true);
 
     } 
-    public void StartGATOGame(string nombreRIval)
+    public void StartGATOGame(string nombreRival, string playernum)
     {
         NetworkManager.Instance.ResetGame();
 
@@ -57,11 +57,14 @@ public class UIManagaer : MonoBehaviour
         NetworkManager.Instance.OnUserDataReceived += ProcessReceivedData;
         NetworkManager.Instance.OnUsersListReceived += ProcessUsersListData;
         NetworkManager.Instance.OnGameStartReceived += StartGATOGame;
+        NetworkManager.Instance.OnInviteReceived += InviteReceived;
 
     }
     private void OnDisable()
     {
         NetworkManager.Instance.OnUserDataReceived -= ProcessReceivedData;
+        NetworkManager.Instance.OnUsersListReceived -= ProcessUsersListData;
+        NetworkManager.Instance.OnInviteReceived -= InviteReceived;
         NetworkManager.Instance.OnGameStartReceived -= StartGATOGame;
 
     }
@@ -76,13 +79,13 @@ public class UIManagaer : MonoBehaviour
         {
             warnNombreOcupado.SetActive(true);
         }
-        else if (message == "Invitation Received")
-        {
-            invitacionRecibidaPopup.SetActive(true);
-            txtInvitacionRecibida.text = $"El usuario: {usuario} ten manda invitación de juego";
-        }
+        
     }
-
+    public void InviteReceived(string usernameInviter)
+    {
+        invitacionRecibidaPopup.SetActive(true);
+        txtInvitacionRecibida.text = $"El usuario: {usernameInviter} te manda invitación de juego";
+    }
     public void ProcessUsersListData(string userJson)
     {
         UserListData usersList;
@@ -114,30 +117,9 @@ public class UIManagaer : MonoBehaviour
     {
         Debug.Log("Usuario seleccionado: " + username);
         NetworkManager.Instance.SendGameInvite(username);
+        invitacionEnviadaPopUp.SetActive(true);
+        txtInvitacionEnviada.text = $"Invitación para jugar enviada al usuario: {username}. Por favor espera respuesta";
+
     }
 }
-    
-    //for (int i = 0; i<spritesForAllies.Length; i++)
-    //    {
-    //        GameObject allyBtn = Instantiate(allyBtnPrefab, tiendaGridLayout.transform);
-    //allyBtn.GetComponent<Image>().sprite = spritesForAllies[i];
-    //        Button abtn = allyBtn.GetComponent<Button>();
-    //TextMeshProUGUI txtBtn = allyBtn.GetComponentInChildren<TextMeshProUGUI>();
-    ////print("GameUICanvasManager texto del boton es: " + txtBtn);
-    //int index = i;
-    //Vector2 btnPosition = allyBtn.transform.position;
-    //txtBtn.text = $"${preciosDeAliados[i]}";
-    //        //print("GameUICanvasManager texto del precio por boton es: " + txtBtn.text);
-    //        abtn.onClick.AddListener(() => AliadoSeleccionado(index, btnPosition));
-//    //    }
-//    private void SendGameInvite()
-//    {
 
-//    }
-//    //private void SelectPlayer()
-//    //{
-//    //    //Debug.Log($"Jugador {playerNumber} seleccionado");
-//    //    menu.SetActive(false);
-//    //    OnPlayerSelected?.Invoke(playerNumber);
-//    //}
-//}

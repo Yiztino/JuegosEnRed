@@ -17,14 +17,19 @@ class Gato{
 
     init(){
         this.board = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-        this.p1 = "";
-        this.p2 = "";
+        //this.p1 = "";
+        //this.p2 = "";
         this.actual = 1;
         this.round = 0;
         this.score1 = 0;
         this.score2 = 0;
         this.winner = 0;
        
+    }
+
+    resetBoard(){
+        this.board = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+        
     }
 
     getStatus(){
@@ -39,26 +44,27 @@ class Gato{
         }
     }
 
-    turn(player, pos) {
+    turn(playerNum, pos) {
+        if(this.winner !== 0) return `error|Ya terminó la ronda. Ganó el jugador ${this.winner}`;
+        if (playerNum === 0) return "error| jugador es 0";
+        if (playerNum !== this.actual) return "error| no es tu turno";
+        if (pos < 0 || pos >= 9) return "error| posición inválida";
+        if (this.board[pos] !== 0) return "error| posición ocupada";
+
+        this.board[pos] = playerNum;
        
-        // let player = this.getPlayer(id);
-        if (player === 0) return "error: jugador es 0";
-        if (player !== this.actual) return "error: no es tu turno";
-        if (pos < 0 || pos >= 9) return "error: posición inválida";
-        if (this.board[pos] !== 0) return "error: posición ocupada";
-
-        this.board[pos] = player;
-        this.actual = this.actual === 1 ? 2 : 1;
-
         let winner = this.isWin();
+
         if (winner > 0) {
             this.winner = winner;
             winner === 1 ? this.score1++ : this.score2++;
             this.round++;
+            this.actual = winner;
             
-            return `Ganó el jugador ${winner}`;
+            return `win|${winner}`;
         }
-        return "OK, sigue el juego";
+         this.actual = this.actual === 1 ? 2 : 1;
+        return "turnFinished|Continue";
     }
     isWin() {
         const winPatterns = [
@@ -77,9 +83,8 @@ class Gato{
     }
 }
 
-//const game = new Gato();
 
-//REFERENTE AL WEB SOCKET
+//////////////REFERENTE AL WEB SOCKET/////////////////////
 
 
 class User{
@@ -89,7 +94,6 @@ class User{
 		this._conn = null;
         this._playingState = false;
         this._invitedBy = null;
-       // this._inviting = null;
         this._partidaID = null;
 	}
 
@@ -111,11 +115,6 @@ class User{
 	{
 		this._invitedBy = user;
 	}
-
-    // set inviting ( inviting )
-    // {
-    //     this._inviting = inviting;
-    // }
     set partidaID ( id )
     {
         this._partidaID = id;
@@ -141,11 +140,6 @@ class User{
 	{
 		return this._invitedBy;
 	}
-	// get inviting ()
-	// {
-	// 	return this._inviting;
-	// }
-
 	// static findClientByUsername (lst, username)
 	// {
 	// 	lst.forEach(user => {
@@ -160,9 +154,9 @@ class User{
         return lst.find(user => user.username === username) || null;
     }
 }
-
+//Crea servidor web
 const wss = new WebSocket.Server({ port: webSocketPort },()=>{
-    console.log('Web Socket Server Started on port 8080');
+    console.log(`Web Socket Server Started on port ${webSocketPort}`);
 });
 
 wss.on('connection', function connection(ws) {
@@ -172,17 +166,15 @@ wss.on('connection', function connection(ws) {
     let user = new User();
 	user.connection = ws;
 	users.push(user);
-    //clients.push(ws);// Agregar la conexión (cliente) a la lista
-
-	// let cliente = new Cliente ();
+    
 	
-    ws.on('open', (data) => {
-		console.log('Now Open');
-	});
+    // ws.on('open', (data) => {
+	// 	console.log('Now Open');
+	// });
 
-	ws.on("message", (data) => {
-        console.log('Message received: %s',data);
-        // const [command, player, pos] = message.toString().split(":");
+	ws.on("message", function incoming(data){
+    
+        console.log('Message received: ',data.toString());
         let response;
         let info = data.toString().split('|');
         let partida;
@@ -191,36 +183,53 @@ wss.on('connection', function connection(ws) {
 
             case "init":
                 partida = partidasPrivadas[user.partidaID]
-                partida.init();
-                response = partida.getStatus();
-                user.connection.send(JSON.stringify(response))
+                if(partida){
+                    partida.init();
+                    broadcastToMatch(user.partidaID, "data|"+JSON.stringify(partida.getStatus()));
+                }
+                // response = partida.getStatus();
+                // user.connection.send(JSON.stringify(response))
                 
                 break;
             case "status":
+                
                 partida = partidasPrivadas[user.partidaID]
-                response = partida.getStatus();
-                user.connection.send(JSON.stringify(response))
+                if(partida){
+                    response = partida.getStatus();
+                    user.connection.send("data|"+JSON.stringify(response))
+                }
+                
+                break;
+            case "resetBoard":
+                
+                partida = partidasPrivadas[user.partidaID];
+                if (partida) {
+                    partida.resetBoard();
+                    partida.winner = 0;
+                    partida.actual = 1;
+                    broadcastToMatch(user.partidaID, "data|" + JSON.stringify(partida.getStatus()));
+                }
                 break;
             case "turn":
                 
-                partida = partidasPrivadas[user.partidaID]
-                if(!partida){user.connection.send("No estás en una partida");
+                partida = partidasPrivadas[user.partidaID];
+                if(!partida){
+                    user.connection.send("error|No estás en una partida");
                     break;
                 }
 
-                //const playerNum = parseInt(info[1]);
                 const playerNum = (partida.p1 === user.username) ? 1 : 2;
-                //const position = parseInt(info[2]) - 1;
                 const position = parseInt(info[1]) - 1;
-                partida.turn(playerNum, position);
+                const result = partida.turn(playerNum, position)
+                 
+                if(result.startsWith("error|")){
+                    user.connection.send(result);
+                    return;
+                }
                 
                 response = partida.getStatus();
-
-                users.forEach(us => {
-                    if ( us.partidaID === user.partidaID && us.connection.readyState === WebSocket.OPEN) {
-                        us.connection.send(JSON.stringify(response)); // Aquí se envía a todos los clientes
-                    }
-                });
+                broadcastToMatch(user.partidaID, "data|"+JSON.stringify(response));
+                
                 break;
             case "updateUsername": 
                 const newUsername = info[1];
@@ -233,151 +242,97 @@ wss.on('connection', function connection(ws) {
                    user.connection.send("message|Username updated|");
                 }
                 break;
-                
-                // u=true;
-                // users.forEach(us => {
-                //     if(us.username === info[1]){
-                //         u = false;
-                //         user.connection.send("El nombre de usuario ya está ocupado")
-                //     }
-                // });
-                // if(u == true){
-                //     user.username = info[1];
-                // }
-                
-                // user.connection.send("Username upDated: "+user.username);
-                // break;
             case 'getUsersList':
-                let lista = [];
-                users.forEach(us => {
-                    if(us.connection.readyState === WebSocket.OPEN)
-                    {
-                        if(!(us.username === "none" && user.username)){
-
-                            lista.push(us.username);
-                            
-                        }
-                        //lista = lista + us.username;
-                        //us.send(cliente.username + " says: " + data); // si falla, cambiar a: `data.toString()`
-                    }
-                });
-                let json = 'usersList|{"users":'+JSON.stringify(lista)+"}";
-                user.connection.send(json);
-                //response = lista;
+                const lista = users
+                    .filter(u => u.username !== "none" && u.username !== user.username)
+                    .map(u => u.username);
+                user.connection.send(`usersList|${JSON.stringify({ users: lista })}`);
                 break;
+                
             
             case 'sendGameInvite': 
-                // u = false;
+                
                 let invitingUser = users.find(us => us.username === info[1]);
                 if(invitingUser && invitingUser.connection.readyState === WebSocket.OPEN) {
                     invitingUser.invitedBy = user.username;
-                    //user.inviting = invitingUser;
-                    invitingUser.connection.send("message|Invitation Received|"+user.username);
+                    
+                    invitingUser.connection.send("invite|"+user.username);
 
                 } else {
-                     user.connection.send("User: " + info[1] + " not found");
+                     user.connection.send("error|User: " + info[1] + " not found");
                 }
-                // users.forEach(us => {
-                //     if(us.username === info[1])
-                //     {  
-                //         u=true;
-                //         user.inviting = us;
-                //         us.invitedBy = user;
-                //         us.connection.send("El usuario: "+user.username+" manda invitacion de juego" + inviter)
-                        
-                //     }
-                // })
-                // if(u == false){
-                //     user.connection.send()
-                // }
+              
                 break;
-                case 'gameInviteResponse':
+             case 'gameInviteResponse':
+                const inviterUser = User.findClientByUsername(users, user.invitedBy);
 
-                    const inviterUsername = user.invitedBy;
-                    const inviterUser = User.findClientByUsername(users, inviterUsername);
-
-                    if(!inviterUser){
-                        user.connection.send("Inviter not found");
-                        break;
-                    };
-
-                    if (info[1] === "yes") {
-                        const partidaID = inviterUser.username + "_vs_" + user.username;
-            
-                        const nuevaPartida = new Gato();
-                        let playerTurn;
-                        if (Math.random() < 0.5) {
-                            nuevaPartida.p1 = inviterUser.username;
-                            playerTurn = 1;
-                            nuevaPartida.p2 = user.username;
-                        } else {
-                            nuevaPartida.p1 = user.username;
-                            playerTurn = 2;
-                            nuevaPartida.p2 = inviterUser.username;
-                        }
-                        nuevaPartida.init();
-                        partidasPrivadas[partidaID] = nuevaPartida;
-                        
-                        
-                        
-                        inviterUser.playingState = true;
-                        user.playingState = true;
-            
-                        inviterUser.partidaID = partidaID;
-                        user.partidaID = partidaID;
-                        if(playerTurn == 1){
-                            inviterUser.connection.send(`START_GAME|${user.username}|${1}`);
-                        }
-                        //inviterUser.connection.send(`START_GAME|${user.username}|${}`);
-                        user.connection.send(`START_GAME|${inviterUser.username}`);
-                        
-                        user.invitedBy = null;
-                        //inviter.inviting = null;
-                        
-                    } else if (info[1] === "no") {
-                        
-                        inviterUser.connection.send(`REJECTED|${user.username}`);
-                        user.connection.send(`You rejected the invitation from ${inviter.username}`);
-                        
-                        
-                        
-                    }
-                    user.invitedBy = null;
-                       
+                if(!inviterUser){
+                    user.connection.send("error|Inviter not found");
                     break;
-            case '404': 
+                };
+
+                if (info[1] === "yes") {
+                    const partidaID = `${inviterUser.username}_vs_${user.username}`;
+        
+                    const nuevaPartida = new Gato();
+
+                    if (Math.random() < 0.5) {
+                        nuevaPartida.p1 = inviterUser.username;
+                        nuevaPartida.p2 = user.username;
+                    } else {
+                        nuevaPartida.p1 = user.username;
+                        nuevaPartida.p2 = inviterUser.username;
+                    }
+                    nuevaPartida.init();
+                    partidasPrivadas[partidaID] = nuevaPartida;
+                    
+                    
+                    
+                    inviterUser.playingState = true;
+                    user.playingState = true;
+        
+                    inviterUser.partidaID = partidaID;
+                    user.partidaID = partidaID;
+
+                    inviterUser.connection.send(`START_GAME|${user.username}|${(nuevaPartida.p1 === inviterUser.username) ? 1 : 2}`);
+                    user.connection.send(`START_GAME|${inviterUser.username}|${(nuevaPartida.p1 === user.username) ? 1 : 2}`);
+                    //inviterUser.connection.send(`START_GAME|${user.username}|${}`);
+                    //user.connection.send(`START_GAME|${inviterUser.username}`);
+                    
+                    
+                } else if (info[1] === "no") {
+                    
+                    inviterUser.connection.send(`REJECTED|${user.username}`);
+                    user.connection.send(`message|You rejected the invitation from ${inviter.username}`);
+                    
+                    
+                    
+                }
+                user.invitedBy = null;
                 break;
             default:
-                // response = { error: "Comando no válido" };
-                // break;
-                // Mandar a todos los clientes conectados el mensaje con el username de quien lo envió
-				users.forEach(us => {
-					if(us.readyState === WebSocket.OPEN)
-					{
-						us.send(us.username + " says: " + data); // si falla, cambiar a: `data.toString()`
-					}
-				});
-				break;
-        }
-
-        users.forEach(us => {
-            if (us.readyState === WebSocket.OPEN) {
-                us.send(JSON.stringify(response));
+                
+				
+                user.connection.send("error|Comando no reconocido");
+                break;
             }
-        });
     });
     
-    ws.on("close", () => {
-        let index = users.indexOf(ws);
-        if (index > -1)
-        {
-            user.username = "none";
-            users.splice(index, 1);
-            user.connection.send("User: "+user.username+ " disconnected");
-        }
+    ws.on("close", function() {
+        console.log(`Connection closed: ${user.username}`);
+        users.splice(users.indexOf(user))
+       
     });
 });
 
 wss.on('listening',()=>{
    console.log('Now listening on port 8080...');
 });
+
+function broadcastToMatch(partidaID, message) {
+    users.forEach(us => {
+        if (us.partidaID === partidaID && us.connection.readyState === WebSocket.OPEN) {
+            us.connection.send(message);
+        }
+    });
+}

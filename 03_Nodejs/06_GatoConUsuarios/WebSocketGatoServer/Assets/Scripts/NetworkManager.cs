@@ -16,7 +16,8 @@ public class NetworkManager : MonoBehaviour
     public event Action<string> OnGameDataReceived;
     public event Action<string,string> OnUserDataReceived;
     public event Action<string> OnUsersListReceived;
-    public event Action<string> OnGameStartReceived;
+    public event Action<string, string> OnGameStartReceived;
+    public event Action<string> OnInviteReceived;
     private void Awake()
     {
         if (Instance == null)
@@ -75,17 +76,18 @@ public class NetworkManager : MonoBehaviour
             }
             else if (splitArray[0] == "START_GAME")
             {
-                Debug.Log($"Data received: {splitArray[1]}");
-                //OnGameStartReceived?.Invoke(splitArray[1], splitArray[2]);
+                //Debug.Log($"Data received: {splitArray[1]}");
+                OnGameStartReceived?.Invoke(splitArray[1], splitArray[2]);
+            }
+            else if (splitArray[0] == "invite")
+            {
+                //Debug.Log($"Data received: {splitArray[1]}");
+                OnInviteReceived?.Invoke(splitArray[1]);
             }
            
             //OnDataReceived?.Invoke(lastReceivedData);
         };
 
-        // Keep sending messages at every 0.3s
-        //InvokeRepeating("SendWebSocketMessage", 0.0f, 0.3f);
-
-        // waiting for messages
         await websocket.Connect();
     }
 
@@ -104,11 +106,11 @@ public class NetworkManager : MonoBehaviour
         }
     }
 
-    public async void Tirada(int idPlayer, int pos)
+    public async void Tirada(int pos)
     {
         if (websocket.State == WebSocketState.Open)
         {
-            string message = $"turn|{idPlayer}|{pos}";
+            string message = $"turn|{pos}";
             Debug.Log("Enviando tirada: " + message);
             await websocket.SendText(message);
         }
@@ -118,7 +120,7 @@ public class NetworkManager : MonoBehaviour
     {
         if (websocket.State == WebSocketState.Open)
         {
-            await websocket.SendText("init");
+            await websocket.SendText("resetBoard");
         }
     }
     public async void UpdateUsername(string name)
