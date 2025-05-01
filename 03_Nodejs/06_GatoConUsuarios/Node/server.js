@@ -3,6 +3,7 @@ const WebSocket = require('ws');
 const users = [];
 const webSocketPort = 8080;
 const partidasPrivadas = {};
+const usuariosPersistentes = {};
 class Gato{
     constructor(){
         this.board = [0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -17,8 +18,6 @@ class Gato{
 
     init(){
         this.board = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-        //this.p1 = "";
-        //this.p2 = "";
         this.actual = 1;
         this.round = 0;
         this.score1 = 0;
@@ -46,10 +45,10 @@ class Gato{
 
     turn(playerNum, pos) {
         if(this.winner !== 0) return `error|Ya terminó la ronda. Ganó el jugador ${this.winner}`;
-        if (playerNum === 0) return "error| jugador es 0";
-        if (playerNum !== this.actual) return "error| no es tu turno";
-        if (pos < 0 || pos >= 9) return "error| posición inválida";
-        if (this.board[pos] !== 0) return "error| posición ocupada";
+        if (playerNum === 0) return "error|jugador es 0";
+        if (playerNum !== this.actual) return "error|no es tu turno";
+        if (pos < 0 || pos >= 9) return "error|posición inválida";
+        if (this.board[pos] !== 0) return "error|posición ocupada";
 
         this.board[pos] = playerNum;
        
@@ -80,6 +79,15 @@ class Gato{
             }
         }
         return 0;
+        /*
+        esto sirve en lugar de lo ed arriba?
+        for (let [a, b, c] of wins) {
+            if (this.board[a] && this.board[a] === this.board[b] && this.board[b] === this.board[c]) {
+                return this.board[a];
+            }
+        }
+        return 0;
+        */
     }
 }
 
@@ -97,59 +105,18 @@ class User{
         this._partidaID = null;
 	}
 
-	set username( user )
-	{
-		this._username = user;
-	}
+	set username( user ) { this._username = user; }
+	set connection( con ) { this._conn = con; }
+    set playingState ( state ) { this._playingState = state; }
+    set invitedBy( user ) { this._invitedBy = user; }
+    set partidaID ( id ) { this._partidaID = id; }
 
-	set connection( con )
-	{
-		this._conn = con;
-	}
+    get username () { return this._username; }
+	get connection () { return this._conn; }
+    get partidaID () { return this._partidaID; }
+    get playingState () { return this._playingState; }
+    get invitedBy () { return this._invitedBy; }
 
-    set playingState ( state )
-    {
-        this._playingState = state;
-    }
-    set invitedBy( user )
-	{
-		this._invitedBy = user;
-	}
-    set partidaID ( id )
-    {
-        this._partidaID = id;
-    }
-
-	get username ()
-	{
-		return this._username;
-	}
-	get connection ()
-	{
-		return this._conn;
-	}
-    get partidaID ()
-    {
-        return this._partidaID;
-    }
-    get playingState ()
-    {
-        return this._playingState
-    }
-    get invitedBy ()
-	{
-		return this._invitedBy;
-	}
-	// static findClientByUsername (lst, username)
-	// {
-	// 	lst.forEach(user => {
-	// 		if(user.username === username)
-	// 		{
-	// 			return user;
-	// 		}
-	// 	});
-	// 	return null;
-	// }
     static findClientByUsername(lst, username) {
         return lst.find(user => user.username === username) || null;
     }
@@ -163,11 +130,10 @@ wss.on('connection', function connection(ws) {
 	
 	console.log('New connenction');
 
-    let user = new User();
+    const user = new User();
 	user.connection = ws;
 	users.push(user);
     
-	
     // ws.on('open', (data) => {
 	// 	console.log('Now Open');
 	// });
@@ -175,7 +141,7 @@ wss.on('connection', function connection(ws) {
 	ws.on("message", function incoming(data){
     
         console.log('Message received: ',data.toString());
-        let response;
+        //let response;
         let info = data.toString().split('|');
         let partida;
 
@@ -233,15 +199,52 @@ wss.on('connection', function connection(ws) {
                 break;
             case "updateUsername": 
                 const newUsername = info[1];
+                
                 if (User.findClientByUsername(users, newUsername)) {
                     user.connection.send("message|Username already in use|");
-                } else {
-                    user.username = newUsername;
-                    // let json = '{"message": "Username updated to' + user.username + '"}';
-                    // user.connection.send(json);
-                   user.connection.send("message|Username updated|");
+                    break;
                 }
+                
+                
+
+                if (usuariosPersistentes[newUsername]) {
+                    const dataPersistente = usuariosPersistentes[newUsername];
+                    const partida = dataPersistente.partida;
+
+                    if (partida !== null && !User.findClientByUsername(users, newUsername)) {
+                        user.username = newUsername;
+                        user.partidaID = dataPersistente.partidaID;
+                        partidasPrivadas[user.partidaID] = partida;
+
+                        
+                        const oponente = (partida.p1 === user.username) ? partida.p2 : partida.p1;
+                        const numJugador = (partida.p1 === user.username) ? 1 : 2;
+
+                        
+                        //user.connection.send("data|" + JSON.stringify(partida.getStatus()));
+
+                        user.connection.send("message|Reconnected to your game|");
+                        user.connection.send(`START_GAME|${oponente}|${numJugador}`);
+                        user.connection.send("data|" + JSON.stringify(dataPersistente.partida.getStatus()));
+                        break;
+                    }
+                }
+
+                user.username = newUsername;
+                usuariosPersistentes[newUsername] = {
+                    partidaID: null,
+                    partida: null
+                };
+                user.connection.send("message|Username updated|");
                 break;
+
+                // if (User.findClientByUsername(users, newUsername)) {
+                //     user.connection.send("message|Username already in use|");
+                // } else {
+                //     user.username = newUsername;
+                //     user.connection.send("message|Username updated|");
+                // }
+                //break;
             case 'getUsersList':
                 const lista = users
                     .filter(u => u.username !== "none" && u.username !== user.username)
@@ -255,7 +258,6 @@ wss.on('connection', function connection(ws) {
                 let invitingUser = users.find(us => us.username === info[1]);
                 if(invitingUser && invitingUser.connection.readyState === WebSocket.OPEN) {
                     invitingUser.invitedBy = user.username;
-                    
                     invitingUser.connection.send("invite|"+user.username);
 
                 } else {
@@ -264,6 +266,9 @@ wss.on('connection', function connection(ws) {
               
                 break;
              case 'gameInviteResponse':
+                // const inviterUsername = info[2]; // <- lo mandas desde el cliente
+                // const inviterUser = User.findClientByUsername(users, inviterUsername);
+
                 const inviterUser = User.findClientByUsername(users, user.invitedBy);
 
                 if(!inviterUser){
@@ -293,26 +298,29 @@ wss.on('connection', function connection(ws) {
         
                     inviterUser.partidaID = partidaID;
                     user.partidaID = partidaID;
+                    //PAR LO DE REGRESAR A PARTIDA
+                    usuariosPersistentes[inviterUser.username] = {
+                        partidaID: partidaID,
+                        partida: nuevaPartida
+                    };
+
+                    usuariosPersistentes[user.username] = {
+                        partidaID: partidaID,
+                        partida: nuevaPartida
+                    };
 
                     inviterUser.connection.send(`START_GAME|${user.username}|${(nuevaPartida.p1 === inviterUser.username) ? 1 : 2}`);
                     user.connection.send(`START_GAME|${inviterUser.username}|${(nuevaPartida.p1 === user.username) ? 1 : 2}`);
                     //inviterUser.connection.send(`START_GAME|${user.username}|${}`);
                     //user.connection.send(`START_GAME|${inviterUser.username}`);
-                    
-                    
                 } else if (info[1] === "no") {
                     
                     inviterUser.connection.send(`REJECTED|${user.username}`);
-                    user.connection.send(`message|You rejected the invitation from ${inviter.username}`);
-                    
-                    
-                    
+                    user.connection.send(`message|You rejected the invitation from ${inviterUser.username}`);
                 }
                 user.invitedBy = null;
                 break;
             default:
-                
-				
                 user.connection.send("error|Comando no reconocido");
                 break;
             }

@@ -60,7 +60,7 @@ public class JuegoGato : MonoBehaviour
                 Debug.Log("Datos recibidos correctamente: " + json);
                 UpdateBoard(data);
                 UpdateInfoOnUI(data);
-
+                
                 if (data.winner != 0)
                 {
                     Win(data);
@@ -89,11 +89,6 @@ public class JuegoGato : MonoBehaviour
                     txt.text = "O";
                     break;
             }
-            //if (buttonText != null)
-            //{
-            //    buttonText.text = (board[i] == 1) ? "X" : (board[i] == 2) ? "O" : "";
-            //}
-            //buttons[i].interactable = board[i] == 0;
         }
     }
 
@@ -134,8 +129,11 @@ public class JuegoGato : MonoBehaviour
     }
     private IEnumerator ResetAfterDelay()
     {
+
         yield return new WaitForSeconds(2f);
+        winText.SetActive(false);
         ResetGame();
+        gameEnded = false;
         //NetworkManager.Instance.ResetGam
         //e();
     }

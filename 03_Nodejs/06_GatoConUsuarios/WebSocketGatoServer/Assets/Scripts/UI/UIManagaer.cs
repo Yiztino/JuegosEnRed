@@ -12,7 +12,7 @@ public class UIManagaer : MonoBehaviour
 {
     public GridLayoutGroup userList;
     public GameObject menuInicial, menuStart, playerBtnPrefab, startButton,
-        warnNombreOcupado, invitacionRecibidaPopup, invitacionEnviadaPopUp;
+        warnNombreOcupado, invitacionRecibidaPopup, invitacionEnviadaPopUp, noEsTuTurnoPopUp;
     public TextMeshProUGUI txtInvitacionRecibida, txtInvitacionEnviada;
     public Button startBtn;
     public InputField enterName;
@@ -38,7 +38,7 @@ public class UIManagaer : MonoBehaviour
     } 
     public void StartGATOGame(string nombreRival, string playernum)
     {
-        NetworkManager.Instance.ResetGame();
+        //NetworkManager.Instance.ResetGame();
 
         menuStart.SetActive(false);
         menuInicial.SetActive(false);
@@ -58,6 +58,8 @@ public class UIManagaer : MonoBehaviour
         NetworkManager.Instance.OnUsersListReceived += ProcessUsersListData;
         NetworkManager.Instance.OnGameStartReceived += StartGATOGame;
         NetworkManager.Instance.OnInviteReceived += InviteReceived;
+        NetworkManager.Instance.OnErrorReceived += ErrorReceived; ;
+        NetworkManager.Instance.OnRejectedReceived += RejectedReceived;
 
     }
     private void OnDisable()
@@ -66,6 +68,8 @@ public class UIManagaer : MonoBehaviour
         NetworkManager.Instance.OnUsersListReceived -= ProcessUsersListData;
         NetworkManager.Instance.OnInviteReceived -= InviteReceived;
         NetworkManager.Instance.OnGameStartReceived -= StartGATOGame;
+        NetworkManager.Instance.OnRejectedReceived -= RejectedReceived;
+        NetworkManager.Instance.OnErrorReceived -= ErrorReceived;
 
     }
 
@@ -78,6 +82,11 @@ public class UIManagaer : MonoBehaviour
         else if (message == "Username already in use")
         {
             warnNombreOcupado.SetActive(true);
+        }
+        else if (message == "Reconnected to your game")
+        {
+            menuStart.SetActive(false);
+            menuInicial.SetActive(false);
         }
         
     }
@@ -120,6 +129,31 @@ public class UIManagaer : MonoBehaviour
         invitacionEnviadaPopUp.SetActive(true);
         txtInvitacionEnviada.text = $"Invitación para jugar enviada al usuario: {username}. Por favor espera respuesta";
 
+    }
+    private void ErrorReceived(string message)
+    {
+        if(message == "no es tu turno")
+        {
+            StartCoroutine(NoEsTuTurnoPopUp());
+        }
+    }
+    IEnumerator NoEsTuTurnoPopUp()
+    {
+        noEsTuTurnoPopUp.SetActive(true);
+        yield return new WaitForSeconds(2f);
+        noEsTuTurnoPopUp.SetActive(false);
+    }
+    private void RejectedReceived(string usuario)
+    {
+        Debug.Log("ESTO OCURRE??????????????????????????????????????/");
+    
+        StartCoroutine(InvitacionRechazada(usuario));
+    }
+    IEnumerator InvitacionRechazada(string usuarioQRechazo)
+    {
+        txtInvitacionEnviada.text = $"El usuario {usuarioQRechazo} rechazó tu invitación";
+        yield return new WaitForSeconds(2f);
+        invitacionEnviadaPopUp.SetActive(false);
     }
 }
 

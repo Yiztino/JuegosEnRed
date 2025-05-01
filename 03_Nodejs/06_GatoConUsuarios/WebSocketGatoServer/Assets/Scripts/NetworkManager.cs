@@ -18,6 +18,8 @@ public class NetworkManager : MonoBehaviour
     public event Action<string> OnUsersListReceived;
     public event Action<string, string> OnGameStartReceived;
     public event Action<string> OnInviteReceived;
+    public event Action<string> OnErrorReceived;
+    public event Action<string> OnRejectedReceived;
     private void Awake()
     {
         if (Instance == null)
@@ -83,6 +85,14 @@ public class NetworkManager : MonoBehaviour
             {
                 //Debug.Log($"Data received: {splitArray[1]}");
                 OnInviteReceived?.Invoke(splitArray[1]);
+            }
+            else if (splitArray[0] == "error")
+            {
+                OnErrorReceived?.Invoke(splitArray[1]);
+            }
+            else if (splitArray[0] == "REJECTED")
+            {
+                OnErrorReceived?.Invoke(splitArray[1]);
             }
            
             //OnDataReceived?.Invoke(lastReceivedData);
