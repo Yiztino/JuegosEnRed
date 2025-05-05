@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 using NativeWebSocket;
-using static UnityEditor.PlayerSettings;
+
 //using System.Net.WebSockets;
 
 public class NetworkManager : MonoBehaviour
@@ -20,6 +20,7 @@ public class NetworkManager : MonoBehaviour
     public event Action<string> OnInviteReceived;
     public event Action<string> OnErrorReceived;
     public event Action<string> OnRejectedReceived;
+
     private void Awake()
     {
         if (Instance == null)
@@ -92,7 +93,7 @@ public class NetworkManager : MonoBehaviour
             }
             else if (splitArray[0] == "REJECTED")
             {
-                OnErrorReceived?.Invoke(splitArray[1]);
+                OnRejectedReceived?.Invoke(splitArray[1]);
             }
            
             //OnDataReceived?.Invoke(lastReceivedData);
@@ -140,6 +141,7 @@ public class NetworkManager : MonoBehaviour
             
             string message = $"updateUsername|{name}";
             await websocket.SendText(message);
+
         }
     }
     public async void GetUsersList()
@@ -156,12 +158,12 @@ public class NetworkManager : MonoBehaviour
             await websocket.SendText($"sendGameInvite|{username}");
         }
     }
-    public async void AnswerGameInvite(string yesOrNo)
+    public async void AnswerGameInvite(string yesOrNo, string username)
     {
 
         if (websocket.State == WebSocketState.Open)
         {
-            await websocket.SendText($"gameInviteResponse|{yesOrNo}");
+            await websocket.SendText($"gameInviteResponse|{yesOrNo}|{username}");
         }
     }
     private async void OnApplicationQuit()

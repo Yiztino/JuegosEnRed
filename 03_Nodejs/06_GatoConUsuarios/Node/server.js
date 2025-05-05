@@ -247,7 +247,11 @@ wss.on('connection', function connection(ws) {
                 //break;
             case 'getUsersList':
                 const lista = users
-                    .filter(u => u.username !== "none" && u.username !== user.username)
+                    .filter(u =>
+                        u.username !== "none" &&
+                        u.username !== user.username &&
+                        u.connection.readyState === WebSocket.OPEN &&
+                        !u.playingState)// no se muestra si estan en partida
                     .map(u => u.username);
                 user.connection.send(`usersList|${JSON.stringify({ users: lista })}`);
                 break;
@@ -255,10 +259,10 @@ wss.on('connection', function connection(ws) {
             
             case 'sendGameInvite': 
                 
-                let invitingUser = users.find(us => us.username === info[1]);
-                if(invitingUser && invitingUser.connection.readyState === WebSocket.OPEN) {
-                    invitingUser.invitedBy = user.username;
-                    invitingUser.connection.send("invite|"+user.username);
+                const targetUser = User.findClientByUsername(users, info[1]);
+                if(targetUser && targetUser.connection.readyState === WebSocket.OPEN) {
+                    targetUser.invitedBy = user.username;
+                    targetUser.connection.send("invite|"+user.username);
 
                 } else {
                      user.connection.send("error|User: " + info[1] + " not found");
@@ -266,13 +270,18 @@ wss.on('connection', function connection(ws) {
               
                 break;
              case 'gameInviteResponse':
-                // const inviterUsername = info[2]; // <- lo mandas desde el cliente
-                // const inviterUser = User.findClientByUsername(users, inviterUsername);
 
+                if (!user.invitedBy) {
+                    user.connection.send("error|No tienes invitador registrado");
+                    break;
+                }
+               
                 const inviterUser = User.findClientByUsername(users, user.invitedBy);
 
+                
+
                 if(!inviterUser){
-                    user.connection.send("error|Inviter not found");
+                    user.connection.send("error|Inviter not found|"+ user.invitedBy);
                     break;
                 };
 
@@ -311,6 +320,9 @@ wss.on('connection', function connection(ws) {
 
                     inviterUser.connection.send(`START_GAME|${user.username}|${(nuevaPartida.p1 === inviterUser.username) ? 1 : 2}`);
                     user.connection.send(`START_GAME|${inviterUser.username}|${(nuevaPartida.p1 === user.username) ? 1 : 2}`);
+                    inviterUser.connection.send("data|" + JSON.stringify(nuevaPartida.getStatus()));
+                    user.connection.send("data|" + JSON.stringify(nuevaPartida.getStatus()));
+
                     //inviterUser.connection.send(`START_GAME|${user.username}|${}`);
                     //user.connection.send(`START_GAME|${inviterUser.username}`);
                 } else if (info[1] === "no") {
@@ -328,7 +340,9 @@ wss.on('connection', function connection(ws) {
     
     ws.on("close", function() {
         console.log(`Connection closed: ${user.username}`);
-        users.splice(users.indexOf(user))
+        // users.splice(users.indexOf(user))
+        const index = users.indexOf(user);
+        if(index !== -1){users.splice(index,1);}
        
     });
 });

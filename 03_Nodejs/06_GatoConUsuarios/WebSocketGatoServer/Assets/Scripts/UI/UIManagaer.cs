@@ -17,8 +17,10 @@ public class UIManagaer : MonoBehaviour
     public Button startBtn;
     public InputField enterName;
     private int playerNumber;
+    private Coroutine actualizarUsuariosCoroutine;
 
 
+    private string myUsername;
 
     void Start()
     {
@@ -34,12 +36,20 @@ public class UIManagaer : MonoBehaviour
         NetworkManager.Instance.GetUsersList();
         menuStart.SetActive(false);
         menuInicial.SetActive(true);
+        if(actualizarUsuariosCoroutine == null)
+        {
+            actualizarUsuariosCoroutine = StartCoroutine(ActualizarListaUsuariosPeriodicamente());
+        }
 
     } 
     public void StartGATOGame(string nombreRival, string playernum)
     {
         //NetworkManager.Instance.ResetGame();
-
+        if (actualizarUsuariosCoroutine != null)
+        {
+            StopCoroutine(actualizarUsuariosCoroutine);
+            actualizarUsuariosCoroutine = null;
+        }
         menuStart.SetActive(false);
         menuInicial.SetActive(false);
 
@@ -77,7 +87,9 @@ public class UIManagaer : MonoBehaviour
     {
         if (message == "Username updated")
         {
+            //myUsername = usuario;
             startButton.SetActive(true);
+
         }
         else if (message == "Username already in use")
         {
@@ -94,6 +106,7 @@ public class UIManagaer : MonoBehaviour
     {
         invitacionRecibidaPopup.SetActive(true);
         txtInvitacionRecibida.text = $"El usuario: {usernameInviter} te manda invitación de juego";
+        myUsername = usernameInviter;
     }
     public void ProcessUsersListData(string userJson)
     {
@@ -103,7 +116,7 @@ public class UIManagaer : MonoBehaviour
         
         foreach (Transform child in userList.transform)
         {
-            Destroy(child.gameObject); // Limpiamos la lista antes de agregar nuevos botones
+            Destroy(child.gameObject); 
         }
 
         foreach (string username in usersList.users)
@@ -140,7 +153,7 @@ public class UIManagaer : MonoBehaviour
     IEnumerator NoEsTuTurnoPopUp()
     {
         noEsTuTurnoPopUp.SetActive(true);
-        yield return new WaitForSeconds(2f);
+        yield return new WaitForSeconds(1.2f);
         noEsTuTurnoPopUp.SetActive(false);
     }
     private void RejectedReceived(string usuario)
@@ -154,6 +167,18 @@ public class UIManagaer : MonoBehaviour
         txtInvitacionEnviada.text = $"El usuario {usuarioQRechazo} rechazó tu invitación";
         yield return new WaitForSeconds(2f);
         invitacionEnviadaPopUp.SetActive(false);
+    }
+    IEnumerator ActualizarListaUsuariosPeriodicamente()
+    {
+        while (true)
+        {
+            NetworkManager.Instance.GetUsersList();
+            yield return new WaitForSeconds(1f);
+        }
+    }
+    public void AnswerGameInvite(string yesOrNo)
+    {
+        NetworkManager.Instance.AnswerGameInvite(yesOrNo, myUsername); // Enviamos el username junto con la respuesta
     }
 }
 
