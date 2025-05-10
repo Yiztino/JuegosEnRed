@@ -98,7 +98,7 @@ public class JuegoGato : MonoBehaviour
         statusText.text = $"Turno de: {stringTurn} | Ronda: {data.round} | Score: {data.score1} - {data.score2}";
 
     }
-    private void UpdateStartUI(string enemyName, string playerNum )
+    private void UpdateStartUI(string enemyName, string playerNum, string match )
     {
         int playerNumber = int.Parse(playerNum);
         currentPlayer = playerNumber;
@@ -110,7 +110,7 @@ public class JuegoGato : MonoBehaviour
     {
 
         if (gameEnded) return;
-
+        //Debug.Log("JJJJJJJJJJJJJJJJKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKRISTELLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL");
         NetworkManager.Instance.Tirada(index);
     }
     private void Win(TicTacToeData data)

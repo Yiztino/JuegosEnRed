@@ -47,7 +47,7 @@ public class UIManagaer : MonoBehaviour
         }
 
     } 
-    public void StartGATOGame(string nombreRival, string playernum)
+    public void StartGATOGame(string nombreRival, string playernum, string matchID)
     {
         //NetworkManager.Instance.ResetGame();
         if (actualizarUsuariosCoroutine != null)
@@ -57,6 +57,7 @@ public class UIManagaer : MonoBehaviour
         }
         menuStart.SetActive(false);
         menuInicial.SetActive(false);
+        NetworkManager.Instance.currentMatchID = matchID;
 
     }
     public void RejectInvite()
@@ -194,6 +195,7 @@ public class UIManagaer : MonoBehaviour
     {
         Debug.Log("Partida seleccionada: " + matchID);
         NetworkManager.Instance.EscogerPartida(matchID);
+        NetworkManager.Instance.currentMatchID = matchID;
         menuStart.SetActive(false);
         menuInicial.SetActive(false);
         invitacionEnviadaPopUp.SetActive(false);

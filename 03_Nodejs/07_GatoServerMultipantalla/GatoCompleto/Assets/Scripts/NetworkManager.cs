@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 using NativeWebSocket;
+using UnityEditor.VersionControl;
 
 //using System.Net.WebSockets;
 
@@ -17,7 +18,7 @@ public class NetworkManager : MonoBehaviour
     public event Action<string,string> OnUserDataReceived;
     public event Action<string> OnUsersListReceived;
     public event Action<string> OnMatchesListReceived;
-    public event Action<string, string> OnGameStartReceived;
+    public event Action<string, string, string> OnGameStartReceived;
     public event Action<string> OnInviteReceived;
     public event Action<string> OnErrorReceived;
     public event Action<string> OnRejectedReceived;
@@ -86,7 +87,7 @@ public class NetworkManager : MonoBehaviour
             else if (splitArray[0] == "START_GAME")
             {
                 //Debug.Log($"Data received: {splitArray[1]}");
-                OnGameStartReceived?.Invoke(splitArray[1], splitArray[2]);
+                OnGameStartReceived?.Invoke(splitArray[1], splitArray[2], splitArray[3]);
             }
             else if (splitArray[0] == "invite")
             {
@@ -119,15 +120,16 @@ public class NetworkManager : MonoBehaviour
     {
         if (websocket.State == WebSocketState.Open)
         {
-            await websocket.SendText("status");
+            await websocket.SendText($"status|{currentMatchID}");
         }
     }
 
     public async void Tirada(int pos)
     {
-        if (websocket.State == WebSocketState.Open)
+        Debug.Log("SIQUIERA ENVIO Enviando tirada: " );
+        if (websocket.State == WebSocketState.Open && !string.IsNullOrEmpty(currentMatchID))
         {
-            string message = $"turn|{pos}";
+            string message = $"turn|{currentMatchID}|{pos}";
             Debug.Log("Enviando tirada: " + message);
             await websocket.SendText(message);
         }
@@ -137,7 +139,7 @@ public class NetworkManager : MonoBehaviour
     {
         if (websocket.State == WebSocketState.Open)
         {
-            await websocket.SendText("resetBoard");
+            await websocket.SendText($"resetBoard|{currentMatchID}|");
         }
     }
     public async void UpdateUsername(string name)

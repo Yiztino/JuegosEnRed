@@ -204,7 +204,7 @@ wss.on('connection', function connection(ws) {
                 }
 
                 const playerNum = (partida.p1 === user.username) ? 1 : 2;
-                const position = parseInt(info[1]) - 1;
+                const position = parseInt(info[2]) - 1;
                 const result = partida.turn(playerNum, position)
                  
                 if(result.startsWith("error|")){
@@ -226,35 +226,36 @@ wss.on('connection', function connection(ws) {
                 
                 
 
-                if (usuariosPersistentes[newUsername]) {
-                    const dataPersistente = usuariosPersistentes[newUsername];
-                    const partida = dataPersistente.partida;
+                // if (usuariosPersistentes[newUsername]) {
+                //     const dataPersistente = usuariosPersistentes[newUsername];
+                //     const partida = dataPersistente.partida;
 
-                    if (partida !== null && !User.findClientByUsername(users, newUsername)) {
-                        user.username = newUsername;
-                        user.partidaID = dataPersistente.partidaID;
-                        partidasPrivadas[user.partidaID] = partida;
-
-                        
-                        const oponente = (partida.p1 === user.username) ? partida.p2 : partida.p1;
-                        const numJugador = (partida.p1 === user.username) ? 1 : 2;
+                //     if (partida !== null && !User.findClientByUsername(users, newUsername)) {
+                //         user.username = newUsername;
+                //         user.partidaID = dataPersistente.partidaID;
+                //         partidasPrivadas[user.partidaID] = partida;
 
                         
-                        //user.connection.send("data|" + JSON.stringify(partida.getStatus()));
+                //         const oponente = (partida.p1 === user.username) ? partida.p2 : partida.p1;
+                //         const numJugador = (partida.p1 === user.username) ? 1 : 2;
 
-                        user.connection.send("message|Reconnected to your game|");
-                        user.connection.send(`START_GAME|${oponente}|${numJugador}`);
-                        user.connection.send("data|" + JSON.stringify(dataPersistente.partida.getStatus()));
-                        break;
-                    }
-                }
+                        
+                //         //user.connection.send("data|" + JSON.stringify(partida.getStatus()));
+
+                //         user.connection.send("message|Reconnected to your game|");
+                //         user.connection.send(`START_GAME|${oponente}|${numJugador}|${user}`);
+                        
+                //         user.connection.send("data|" + JSON.stringify(dataPersistente.partida.getStatus()));
+                //         break;
+                //     }
+                // }
 
                 user.username = newUsername;
                 usuariosPersistentes[newUsername] = {
                     partidaID: null,
                     partida: null
                 };
-                user.connection.send("message|Username updated|");
+                user.connection.send(`message|Username updated|${user.username}`);
                 break;
 
                 // if (User.findClientByUsername(users, newUsername)) {
@@ -358,8 +359,8 @@ wss.on('connection', function connection(ws) {
                     user.addPartidaID(partidaID);
                     inviterUser.addPartidaID(partidaID);
                     
-                    inviterUser.connection.send(`START_GAME|${user.username}|${(nuevaPartida.p1 === inviterUser.username) ? 1 : 2}`);
-                    user.connection.send(`START_GAME|${inviterUser.username}|${(nuevaPartida.p1 === user.username) ? 1 : 2}`);
+                    inviterUser.connection.send(`START_GAME|${user.username}|${(nuevaPartida.p1 === inviterUser.username) ? 1 : 2}|${partidaID}`);
+                    user.connection.send(`START_GAME|${inviterUser.username}|${(nuevaPartida.p1 === user.username) ? 1 : 2}|${partidaID}`);
                     const gameStatus = nuevaPartida.getStatus();
                     inviterUser.connection.send("data|" + JSON.stringify(gameStatus));
                     user.connection.send("data|" + JSON.stringify(gameStatus));
@@ -394,7 +395,7 @@ wss.on('connection', function connection(ws) {
                 const jugadorNumero = (partida.p1 === user.username) ? 1 : 2;
                 const oponente = (jugadorNumero === 1) ? partida.p2 : partida.p1;
 
-                user.connection.send(`START_GAME|${oponente}|${jugadorNumero}`);
+                user.connection.send(`START_GAME|${oponente}|${jugadorNumero}|${user.partidaID}`);
                 user.connection.send("data|" + JSON.stringify(partida.getStatus()));
                 // inviterUser.connection.send(`START_GAME|${user.username}|${(nuevaPartida.p1 === inviterUser.username) ? 1 : 2}`);
                 // user.connection.send(`START_GAME|${inviterUser.username}|${(nuevaPartida.p1 === user.username) ? 1 : 2}`);
